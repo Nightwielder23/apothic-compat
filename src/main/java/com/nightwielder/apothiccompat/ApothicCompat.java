@@ -3,6 +3,7 @@ package com.nightwielder.apothiccompat;
 import com.mojang.logging.LogUtils;
 import com.nightwielder.apothiccompat.compat.CataclysmWeaponryCompat;
 import com.nightwielder.apothiccompat.compat.DreadSteelCompat;
+import com.nightwielder.apothiccompat.compat.LEnderCataclysmCompat;
 import com.nightwielder.apothiccompat.compat.SamuraiDynastyCompat;
 import com.nightwielder.apothiccompat.compat.TetraCompat;
 import com.nightwielder.apothiccompat.compat.UniversalCompat;
@@ -34,6 +35,7 @@ public class ApothicCompat {
         if (ModList.get().isLoaded("tetra")) TetraCompat.send();
         if (ModList.get().isLoaded("weaponsofmiracles")) WeaponsOfMiraclesCompat.send();
         if (ModList.get().isLoaded("cataclysmweaponry")) CataclysmWeaponryCompat.send();
+        if (ModList.get().isLoaded("cataclysm")) LEnderCataclysmCompat.send();
         UniversalCompat.send();
     }
 }
