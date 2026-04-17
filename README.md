@@ -18,6 +18,8 @@ All compat modules are soft dependencies. Each module only activates if both Apo
 
 **Weapons of Miracles** All weapons registered with correct categories. Note: this mod uses the mod ID wom internally.
 
+**L'Ender's Cataclysm** All weapons, armor, and tools registered with correct categories by explicit item ID including swords, heavy weapons, shields, bows, and full armor sets.
+
 **Cataclysm Weaponry** All weapons registered with correct categories based on item type.
 
 **Universal Fallback** Covers any other mod not listed above. Any item that Apotheosis has not already categorized is assigned the correct category based on its Java class type. Covers swords, axes, bows, crossbows, tridents, pickaxes, shovels, and all armor slots.
