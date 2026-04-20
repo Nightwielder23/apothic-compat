@@ -8,6 +8,7 @@ import com.nightwielder.apothiccompat.compat.SamuraiDynastyCompat;
 import com.nightwielder.apothiccompat.compat.TetraCompat;
 import com.nightwielder.apothiccompat.compat.UniversalCompat;
 import com.nightwielder.apothiccompat.compat.WeaponsOfMiraclesCompat;
+import com.nightwielder.apothiccompat.config.ApothicCompatConfig;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
@@ -37,5 +38,6 @@ public class ApothicCompat {
         if (ModList.get().isLoaded("cataclysmweaponry")) CataclysmWeaponryCompat.send();
         if (ModList.get().isLoaded("cataclysm")) LEnderCataclysmCompat.send();
         UniversalCompat.send();
+        ApothicCompatConfig.load();
     }
 }
