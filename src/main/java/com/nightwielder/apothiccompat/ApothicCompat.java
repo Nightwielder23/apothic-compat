@@ -8,7 +8,10 @@ import com.nightwielder.apothiccompat.compat.SamuraiDynastyCompat;
 import com.nightwielder.apothiccompat.compat.TetraCompat;
 import com.nightwielder.apothiccompat.compat.UniversalCompat;
 import com.nightwielder.apothiccompat.compat.WeaponsOfMiraclesCompat;
+import com.nightwielder.apothiccompat.command.ReloadCommand;
 import com.nightwielder.apothiccompat.config.ApothicCompatConfig;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
@@ -24,8 +27,17 @@ public class ApothicCompat {
     public ApothicCompat(FMLJavaModLoadingContext context) {
         IEventBus modBus = context.getModEventBus();
         modBus.addListener(this::sendCategoryOverrides);
+        MinecraftForge.EVENT_BUS.addListener(this::onRegisterCommands);
     }
 
+    private void onRegisterCommands(RegisterCommandsEvent event) {
+        ReloadCommand.register(event.getDispatcher());
+    }
+
+    // Apotheosis's loot_category_override IMC accepts only Map.Entry<Item, String> (item + category);
+    // there is no slot parameter. Equipment-slot tooltip lines (e.g. literal "{mainhand}") come from
+    // vanilla's item.modifiers.<slot> lang keys or a third-party tooltip mod (Curios, etc.), not from
+    // anything Apotheosis or this mod renders — do not try to "fix" it by changing the IMC payload.
     private void sendCategoryOverrides(InterModEnqueueEvent event) {
         if (!ModList.get().isLoaded("apotheosis")) {
             LOGGER.info("Apotheosis not present; skipping all compat modules.");

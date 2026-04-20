@@ -3,6 +3,9 @@ package com.nightwielder.apothiccompat.config;
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.nightwielder.apothiccompat.ApothicCompat;
+import dev.shadowsoffire.apotheosis.adventure.AdventureConfig;
+import dev.shadowsoffire.apotheosis.adventure.AdventureModule;
+import dev.shadowsoffire.apotheosis.adventure.loot.LootCategory;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -13,10 +16,12 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.tags.ITag;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 public final class ApothicCompatConfig {
     private static final String FILE_NAME = "apothic_compat.toml";
@@ -33,7 +38,8 @@ public final class ApothicCompatConfig {
             # affinity system can roll the right gem/affix pools on modded gear that
             # Apotheosis does not categorize on its own. Entries here are sent to
             # Apotheosis via IMC at startup, alongside the mod's built-in compat
-            # modules.
+            # modules. Edit this file then run /apothiccompat reload (op 2) to apply
+            # changes without restarting the server.
             #
             # Valid loot category names (Apotheosis 7.4.8):
             #   sword, heavy_weapon, bow, crossbow, shield,
@@ -58,8 +64,9 @@ public final class ApothicCompatConfig {
             #   key   = full tag id (namespace:path)
             #   value = loot category name from the list above
             #
-            # Tags are resolved at IMC time, so datapack-only tags that load with a
-            # world may not be visible here — prefer item_overrides for those.
+            # Tags are resolved at apply time, so datapack-only tags that load with a
+            # world may not be visible during early startup. /apothiccompat reload
+            # runs after world load, so tag expansion there sees datapack tags.
             #
             # Example:
             #   "simplyswords:greathammers" = "heavy_weapon"
@@ -69,16 +76,45 @@ public final class ApothicCompatConfig {
 
     private ApothicCompatConfig() {}
 
+    /** Initial application during InterModEnqueueEvent — uses IMC, the only path that works pre-game. */
     public static void load() {
+        process((item, categoryName) ->
+                InterModComms.sendTo("apotheosis", IMC_METHOD, () -> Map.entry(item, categoryName)));
+    }
+
+    /**
+     * Runtime reapplication for /apothiccompat reload. IMC is dead after mod loading, so we write
+     * directly to Apotheosis's live override map. We also mirror into AdventureModule.IMC_TYPE_OVERRIDES
+     * (via reflection) because AdventureConfig.load clears TYPE_OVERRIDES and re-copies from there on
+     * any subsequent Apotheosis config reload — without the mirror, our entries would vanish.
+     *
+     * Note: this is purely additive. Removing an entry from the .toml and reloading does NOT remove the
+     * existing override (matches IMC re-send semantics) — restart the server to drop entries.
+     */
+    public static int reload() {
+        Map<ResourceLocation, LootCategory> imcMirror = getImcOverrideMap();
+        return process((item, categoryName) -> {
+            ResourceLocation id = ForgeRegistries.ITEMS.getKey(item);
+            LootCategory cat = LootCategory.byId(categoryName);
+            if (id == null || cat == null) return;
+            AdventureConfig.TYPE_OVERRIDES.put(id, cat);
+            if (imcMirror != null) imcMirror.put(id, cat);
+        });
+    }
+
+    /** Reads the file and dispatches each valid (item, category) pair to {@code action}. Returns the count applied. */
+    private static int process(BiConsumer<Item, String> action) {
         Path path = FMLPaths.CONFIGDIR.get().resolve(FILE_NAME);
         ensureDefaultFile(path);
+        int[] count = {0};
         try (CommentedFileConfig config = CommentedFileConfig.builder(path).sync().build()) {
             config.load();
-            processItemOverrides(config);
-            processTagOverrides(config);
+            count[0] += processItemOverrides(config, action);
+            count[0] += processTagOverrides(config, action);
         } catch (Exception e) {
             ApothicCompat.LOGGER.error("Failed to read {}", FILE_NAME, e);
         }
+        return count[0];
     }
 
     private static void ensureDefaultFile(Path path) {
@@ -91,9 +127,10 @@ public final class ApothicCompatConfig {
         }
     }
 
-    private static void processItemOverrides(CommentedFileConfig config) {
+    private static int processItemOverrides(CommentedFileConfig config, BiConsumer<Item, String> action) {
         Object raw = config.get("item_overrides");
-        if (!(raw instanceof UnmodifiableConfig section)) return;
+        if (!(raw instanceof UnmodifiableConfig section)) return 0;
+        int count = 0;
         for (UnmodifiableConfig.Entry entry : section.entrySet()) {
             String key = entry.getKey();
             Object value = entry.getValue();
@@ -115,13 +152,16 @@ public final class ApothicCompatConfig {
                 ApothicCompat.LOGGER.info("[item_overrides] item '{}' not present; skipping", key);
                 continue;
             }
-            InterModComms.sendTo("apotheosis", IMC_METHOD, () -> Map.entry(item, categoryName));
+            action.accept(item, categoryName);
+            count++;
         }
+        return count;
     }
 
-    private static void processTagOverrides(CommentedFileConfig config) {
+    private static int processTagOverrides(CommentedFileConfig config, BiConsumer<Item, String> action) {
         Object raw = config.get("tag_overrides");
-        if (!(raw instanceof UnmodifiableConfig section)) return;
+        if (!(raw instanceof UnmodifiableConfig section)) return 0;
+        int count = 0;
         for (UnmodifiableConfig.Entry entry : section.entrySet()) {
             String key = entry.getKey();
             Object value = entry.getValue();
@@ -145,8 +185,22 @@ public final class ApothicCompatConfig {
                 continue;
             }
             for (Item item : tag) {
-                InterModComms.sendTo("apotheosis", IMC_METHOD, () -> Map.entry(item, categoryName));
+                action.accept(item, categoryName);
+                count++;
             }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<ResourceLocation, LootCategory> getImcOverrideMap() {
+        try {
+            Field field = AdventureModule.class.getDeclaredField("IMC_TYPE_OVERRIDES");
+            field.setAccessible(true);
+            return (Map<ResourceLocation, LootCategory>) field.get(null);
+        } catch (ReflectiveOperationException e) {
+            ApothicCompat.LOGGER.warn("Could not access AdventureModule.IMC_TYPE_OVERRIDES; reload will not persist across Apotheosis config reloads", e);
+            return null;
         }
     }
 }
