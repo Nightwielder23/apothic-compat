@@ -26,10 +26,13 @@ public final class ReloadCommand {
                                 "Apotheosis is not loaded; nothing to apply."));
                         return 0;
                     }
-                    int count = ApothicCompatConfig.reload();
-                    ctx.getSource().sendSuccess(() -> Component.literal(
-                            "Apothic Compat: applied " + count + " override(s) from apothic_compat.toml"),
-                            true);
+                    ApothicCompatConfig.ReloadResult result = ApothicCompatConfig.reload();
+                    if (result.unchanged()) {
+                        ctx.getSource().sendSuccess(() -> Component.literal("Config unchanged."), false);
+                        return 0;
+                    }
+                    int count = result.count();
+                    ctx.getSource().sendSuccess(() -> Component.literal("Applied " + count + " override(s)."), true);
                     return count;
                 }));
     }

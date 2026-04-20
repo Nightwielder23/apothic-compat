@@ -24,6 +24,24 @@ All compat modules are soft dependencies. Each module only activates if both Apo
 
 **Universal Fallback** Covers any other mod not listed above. Any item that Apotheosis has not already categorized is assigned the correct category based on its Java class type. Covers swords, axes, bows, crossbows, tridents, pickaxes, shovels, and all armor slots.
 
+## Config File
+
+A config file is generated at `config/apothic_compat.toml` on first launch. You can add custom item and tag overrides here without needing to write any scripts.
+
+```toml
+[item_overrides]
+"ruins:greatsword" = "heavy_weapon"
+
+[tag_overrides]
+"simplyswords:greathammers" = "heavy_weapon"
+```
+
+Valid category names: `sword`, `heavy_weapon`, `bow`, `crossbow`, `shield`, `helmet`, `chestplate`, `leggings`, `boots`, `pickaxe`, `shovel`, `none`
+
+## Reload Command
+
+After editing the config, run `/apothiccompat reload` or `/ac reload` (op level 2) to apply changes without restarting. The command will skip if the config has not been modified.
+
 ## Requirements
 
 Minecraft 1.20.1, Forge 47.x, Apotheosis 7.4.x. All other mods are optional soft dependencies.

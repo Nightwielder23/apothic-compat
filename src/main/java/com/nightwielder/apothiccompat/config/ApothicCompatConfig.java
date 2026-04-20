@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -74,10 +75,15 @@ public final class ApothicCompatConfig {
             [tag_overrides]
             """;
 
+    private static FileTime lastAppliedMTime;
+
     private ApothicCompatConfig() {}
 
     /** Initial application during InterModEnqueueEvent — uses IMC, the only path that works pre-game. */
     public static void load() {
+        Path path = FMLPaths.CONFIGDIR.get().resolve(FILE_NAME);
+        ensureDefaultFile(path);
+        lastAppliedMTime = readMTime(path);
         process((item, categoryName) ->
                 InterModComms.sendTo("apotheosis", IMC_METHOD, () -> Map.entry(item, categoryName)));
     }
@@ -88,18 +94,42 @@ public final class ApothicCompatConfig {
      * (via reflection) because AdventureConfig.load clears TYPE_OVERRIDES and re-copies from there on
      * any subsequent Apotheosis config reload — without the mirror, our entries would vanish.
      *
+     * Skips the whole apply cycle if the file's mtime hasn't advanced since the previous apply.
+     *
      * Note: this is purely additive. Removing an entry from the .toml and reloading does NOT remove the
      * existing override (matches IMC re-send semantics) — restart the server to drop entries.
      */
-    public static int reload() {
+    public static ReloadResult reload() {
+        Path path = FMLPaths.CONFIGDIR.get().resolve(FILE_NAME);
+        ensureDefaultFile(path);
+        FileTime current = readMTime(path);
+        if (current != null && current.equals(lastAppliedMTime)) {
+            return ReloadResult.unchanged();
+        }
         Map<ResourceLocation, LootCategory> imcMirror = getImcOverrideMap();
-        return process((item, categoryName) -> {
+        int count = process((item, categoryName) -> {
             ResourceLocation id = ForgeRegistries.ITEMS.getKey(item);
             LootCategory cat = LootCategory.byId(categoryName);
             if (id == null || cat == null) return;
             AdventureConfig.TYPE_OVERRIDES.put(id, cat);
             if (imcMirror != null) imcMirror.put(id, cat);
         });
+        if (current != null) lastAppliedMTime = current;
+        return ReloadResult.applied(count);
+    }
+
+    private static FileTime readMTime(Path path) {
+        try {
+            return Files.getLastModifiedTime(path);
+        } catch (IOException e) {
+            ApothicCompat.LOGGER.warn("Failed to stat {}", FILE_NAME, e);
+            return null;
+        }
+    }
+
+    public record ReloadResult(boolean unchanged, int count) {
+        public static ReloadResult unchanged() { return new ReloadResult(true, 0); }
+        public static ReloadResult applied(int count) { return new ReloadResult(false, count); }
     }
 
     /** Reads the file and dispatches each valid (item, category) pair to {@code action}. Returns the count applied. */
