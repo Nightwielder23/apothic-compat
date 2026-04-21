@@ -22,6 +22,18 @@ All compat modules are soft dependencies. Each module only activates if both Apo
 
 **Cataclysm Weaponry** All weapons registered with correct categories based on item type.
 
+**Simply Swords** Greathammers and greataxes registered as heavy weapons. Longswords, claymores, rapiers, katanas, chakrams registered as swords. Spears and glaives registered as heavy weapons.
+
+**Iron's Spellbooks** Melee staves registered as swords.
+
+**Aquamirae** All weapons and armor registered with correct categories by item type.
+
+**Mowzie's Mobs** All weapons registered with correct categories by item type.
+
+**Spartan Shields** All shields registered as shields.
+
+**Dungeons and Combat** All weapons registered with correct categories by item type.
+
 **Universal Fallback** Covers any other mod not listed above. Any item that Apotheosis has not already categorized is assigned the correct category based on its Java class type. Covers swords, axes, bows, crossbows, tridents, pickaxes, shovels, and all armor slots.
 
 ## Config File
