@@ -30,3 +30,8 @@ ops.json
 usercache.json
 eula.txt
 
+# AI tooling
+.claude/
+CLAUDE.md
+.cursor/
+.cursorrules
