@@ -1,10 +1,16 @@
 package com.nightwielder.apothiccompat;
 
 import com.mojang.logging.LogUtils;
+import com.nightwielder.apothiccompat.compat.AquamiraeCompat;
 import com.nightwielder.apothiccompat.compat.CataclysmWeaponryCompat;
 import com.nightwielder.apothiccompat.compat.DreadSteelCompat;
+import com.nightwielder.apothiccompat.compat.DungeonsAndCombatCompat;
+import com.nightwielder.apothiccompat.compat.IronsSpellbooksCompat;
 import com.nightwielder.apothiccompat.compat.LEnderCataclysmCompat;
+import com.nightwielder.apothiccompat.compat.MowziesMobsCompat;
 import com.nightwielder.apothiccompat.compat.SamuraiDynastyCompat;
+import com.nightwielder.apothiccompat.compat.SimplySwordsCompat;
+import com.nightwielder.apothiccompat.compat.SpartanShieldsCompat;
 import com.nightwielder.apothiccompat.compat.TetraCompat;
 import com.nightwielder.apothiccompat.compat.UniversalCompat;
 import com.nightwielder.apothiccompat.compat.WeaponsOfMiraclesCompat;
@@ -49,6 +55,12 @@ public class ApothicCompat {
         if (ModList.get().isLoaded("weaponsofmiracles")) WeaponsOfMiraclesCompat.send();
         if (ModList.get().isLoaded("cataclysmweaponry")) CataclysmWeaponryCompat.send();
         if (ModList.get().isLoaded("cataclysm")) LEnderCataclysmCompat.send();
+        if (ModList.get().isLoaded("simplyswords")) SimplySwordsCompat.send();
+        if (ModList.get().isLoaded("irons_spellbooks")) IronsSpellbooksCompat.send();
+        if (ModList.get().isLoaded("aquamirae")) AquamiraeCompat.send();
+        if (ModList.get().isLoaded("mowziesmobs")) MowziesMobsCompat.send();
+        if (ModList.get().isLoaded("spartanshields")) SpartanShieldsCompat.send();
+        if (ModList.get().isLoaded("dungeons_and_combat")) DungeonsAndCombatCompat.send();
         UniversalCompat.send();
         ApothicCompatConfig.load();
     }

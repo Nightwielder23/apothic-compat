@@ -104,7 +104,7 @@ public final class ApothicCompatConfig {
         ensureDefaultFile(path);
         FileTime current = readMTime(path);
         if (current != null && current.equals(lastAppliedMTime)) {
-            return ReloadResult.unchanged();
+            return ReloadResult.ofUnchanged();
         }
         Map<ResourceLocation, LootCategory> imcMirror = getImcOverrideMap();
         int count = process((item, categoryName) -> {
@@ -115,7 +115,7 @@ public final class ApothicCompatConfig {
             if (imcMirror != null) imcMirror.put(id, cat);
         });
         if (current != null) lastAppliedMTime = current;
-        return ReloadResult.applied(count);
+        return ReloadResult.ofApplied(count);
     }
 
     private static FileTime readMTime(Path path) {
@@ -128,8 +128,8 @@ public final class ApothicCompatConfig {
     }
 
     public record ReloadResult(boolean unchanged, int count) {
-        public static ReloadResult unchanged() { return new ReloadResult(true, 0); }
-        public static ReloadResult applied(int count) { return new ReloadResult(false, count); }
+        public static ReloadResult ofUnchanged() { return new ReloadResult(true, 0); }
+        public static ReloadResult ofApplied(int count) { return new ReloadResult(false, count); }
     }
 
     /** Reads the file and dispatches each valid (item, category) pair to {@code action}. Returns the count applied. */
